@@ -3,80 +3,81 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
+    <LibRoot>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo</LibRoot>
   </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\BepInEx\core\0Harmony.dll</HintPath>
+      <HintPath>$(LibRoot)\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="App">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\App.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\App.dll</HintPath>
     </Reference>
     <Reference Include="App.Common">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\App.Common.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\App.Common.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\BepInEx\core\BepInEx.dll</HintPath>
+      <HintPath>$(LibRoot)\BepInEx\core\BepInEx.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx.Harmony">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\BepInEx\core\BepInEx.Harmony.dll</HintPath>
+      <HintPath>$(LibRoot)\BepInEx\core\BepInEx.Harmony.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx.Preloader">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\BepInEx\core\BepInEx.Preloader.dll</HintPath>
+      <HintPath>$(LibRoot)\BepInEx\core\BepInEx.Preloader.dll</HintPath>
     </Reference>
     <Reference Include="GameStateStructure">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\GameStateStructure.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\GameStateStructure.dll</HintPath>
     </Reference>
     <Reference Include="HarmonyXInterop">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\BepInEx\core\HarmonyXInterop.dll</HintPath>
+      <HintPath>$(LibRoot)\BepInEx\core\HarmonyXInterop.dll</HintPath>
     </Reference>
     <Reference Include="ILib.ServInjector">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\ILib.ServInjector.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\ILib.ServInjector.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="UniTask">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UniTask.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UniTask.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Localization">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\Unity.Localization.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\Unity.Localization.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AudioModule">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputModule">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.InputModule.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.InputModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.JSONSerializeModule">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestAudioModule">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
     </Reference>
     <Reference Include="UVMBinding">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UVMBinding.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UVMBinding.dll</HintPath>
     </Reference>
     <Reference Include="UVMBinding.Localization">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\UVMBinding.Localization.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UVMBinding.Localization.dll</HintPath>
     </Reference>
     <Reference Include="YYNoteEditor.ScoreData">
-      <HintPath>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo\Yunyun_Syndrome_Data\Managed\YYNoteEditor.ScoreData.dll</HintPath>
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\YYNoteEditor.ScoreData.dll</HintPath>
     </Reference>
   </ItemGroup>
 
