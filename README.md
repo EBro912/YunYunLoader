@@ -29,7 +29,7 @@ Songs /
 ```
 
 ## Creating Custom Songs
-As of writing, creating custom songs for the mod is somewhat of a tedious process, as a visual editor currently does not exist *(but will hopefully exist soon!)*. You can read more about creating custom songs in the **Wiki** tab of this repository.
+As of writing, creating custom songs for the mod is somewhat of a tedious process, as a visual editor currently does not exist *(but will hopefully exist soon!)*. You can read more about creating custom songs in the [Wiki](https://github.com/EBro912/YunYunLoader/wiki) tab of this repository.
 
 ## Issues
 If you find an issue with the mod, feel free to leave a bug report in the **Issues** tab of the repository. Make sure to be as detailed as possible, and leave console output of any errors or warnings you encounter. If you do not have the console enabled when the error occurs, you can view the most recent log output in `BepInEx/LogOutput.log` in any text editor.
