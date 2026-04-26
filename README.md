@@ -1,3 +1,6 @@
+# Notice
+This repo currently only works on the early demo versions of the game. A version for the full release of the game has not yet been developed.
+
 # YunYunLoader
 A custom song loader for YunYun Syndrome!? Rhythm Psychosis. Allows you to load custom maps and music into the game through simple configuration files.
 
