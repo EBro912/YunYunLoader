@@ -16,7 +16,7 @@ using Newtonsoft.Json;
 
 namespace YunyunLoader
 {
-    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.0.0")]
+    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.1.0")]
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony Harmony = new Harmony("YunYunLoader");
@@ -30,7 +30,7 @@ namespace YunyunLoader
         internal static bool SavedIsPlayedPost;
         internal static bool SavedIsRankingEntry;
 
-        public static readonly string SongsPath = Paths.GameRootPath + "\\Songs";
+        private static readonly string SongsPath = Paths.GameRootPath + "\\Songs";
 
         private void Awake()
         {
