@@ -64,6 +64,7 @@ namespace YunYunLoader.Patches
         }
     }
 
+    /* Song dumping for development
     [HarmonyPatch]
     internal class DataStorage_Dump
     {
@@ -112,5 +113,5 @@ namespace YunYunLoader.Patches
             }
             Plugin.Log.LogInfo($"Done! Dumped {success}/{count} data.");
         }
-    }
+    } */
 }
