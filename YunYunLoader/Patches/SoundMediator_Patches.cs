@@ -44,7 +44,6 @@ namespace YunYunLoader.Patches
                 if (Plugin.LoadedAudioClips.TryGetValue(Path.GetFileNameWithoutExtension(result.Audio), out AudioClip c))
                 {
                     source.clip = c;
-                    return;
                 }
             }
             else
@@ -52,6 +51,19 @@ namespace YunYunLoader.Patches
                 // if the song is not modded, use the original
                 source.clip = clip;
             }
+        }
+    }
+
+    // prevent attempts to unload modded resources, ours are loaded via UnityWebRequest so they aren't a Resource
+    // prevents an error in the logs
+    [HarmonyPatch(typeof(Resources), nameof(Resources.UnloadAsset))]
+    internal class Resources_UnloadAsset
+    {
+        private static bool Prefix(Object assetToUnload)
+        {
+            if (assetToUnload is AudioClip clip && Plugin.LoadedAudioClips.ContainsValue(clip))
+                return false;
+            return true;
         }
     }
 }

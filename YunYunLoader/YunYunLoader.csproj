@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
-    <LibRoot>F:\SteamLibrary\steamapps\common\ゆんゆん電波シンドローム Demo</LibRoot>
+    <LibRoot>/media/games/SteamLibrary/steamapps/common/Yunyun_Syndrome</LibRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +15,9 @@
     </Reference>
     <Reference Include="App.Common">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\App.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="App.Steam">
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\App.Steam.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx">
       <HintPath>$(LibRoot)\BepInEx\core\BepInEx.dll</HintPath>

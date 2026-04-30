@@ -6,6 +6,7 @@ using HarmonyLib;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using ILib.ServInject;
 using UnityEngine;
 using YunyunLoader;
 
@@ -45,7 +46,7 @@ namespace YunYunLoader.Patches
                     Id = levelData.ID,
                     MusicName = data.ID,
                     Level = level,
-                    Timestamp = 0 // unused
+                    Timestamp = -1 // unused
                 },
                 LevelData = new ScoreLevelData
                 {
@@ -53,11 +54,63 @@ namespace YunYunLoader.Patches
                     MusicID = data.ID,
                     Name = levelData.ID,
                     Level = (ScoreLevel)level,
-                    TAG = "MOD" // unused
+                    TAG = "MOD", // unused
+                    Group = ScoreGroup.Normal,
+                    Order = 0 // TODO: proper ordering for modded songs
                 },
                 Clip = clip,
                 ScoreData = levelData.Data!
             };
+        }
+    }
+
+    [HarmonyPatch]
+    internal class DataStorage_Dump
+    {
+        private static MethodBase TargetMethod()
+        {
+            // target the explicit implementation
+            return AccessTools.Method(typeof(DataStorage), "App.Data.IDataStorage.Init");
+        }
+        
+        private static void Postfix()
+        {
+            MasterData data = ServInjector.Resolve<MasterData>();
+            if (data == null)
+            {
+                Plugin.Log.LogError("MasterData is null");
+                return;
+            }
+            
+            string scoreInfos = Resources.Load<TextAsset>("YunYun/list").text;
+            File.WriteAllText(BepInEx.Paths.GameRootPath + "/score_infos.json", scoreInfos);
+
+            if (Directory.Exists(BepInEx.Paths.GameRootPath + "/dump"))
+            {
+                Plugin.Log.LogWarning("Skipping dump, folder already exists.");
+                return;
+            }
+            
+            Directory.CreateDirectory(BepInEx.Paths.GameRootPath + "/dump");
+            int count = 0;
+            int success = 0;
+            foreach (ScoreLevelData d in data.Data.ScoreLevelData)
+            {
+                count++;
+                try
+                {
+                    TextAsset text = Resources.Load<TextAsset>("YunYun/Score/" + d.Name);
+                    File.WriteAllText(BepInEx.Paths.GameRootPath + "/dump/" + d.Name + ".json", text.text);
+                    Plugin.Log.LogInfo("Dumped " + d.Name);
+                    Plugin.Log.LogInfo($"(TAG: {d.TAG}, Name: {d.Name}, MusicID: {d.MusicID}, Level: {d.Level}, Diff: {d.Difficulty}, Group: {d.Group}, Order: {d.Order})");
+                    success++;
+                }
+                catch (System.Exception e)
+                {
+                    Plugin.Log.LogError("Dump of " + d.Name + " failed: " + e.Message);
+                }
+            }
+            Plugin.Log.LogInfo($"Done! Dumped {success}/{count} data.");
         }
     }
 }

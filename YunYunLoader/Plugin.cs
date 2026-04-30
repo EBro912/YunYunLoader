@@ -26,6 +26,10 @@ namespace YunyunLoader
         internal static Dictionary<string, AudioClip> LoadedAudioClips = new Dictionary<string, AudioClip>();
         internal static Dictionary<string, ModdedScoreData> ModdedSongs = new Dictionary<string, ModdedScoreData>();
 
+        internal static bool IsModdedSongResult;
+        internal static bool SavedIsPlayedPost;
+        internal static bool SavedIsRankingEntry;
+
         public static readonly string SongsPath = Paths.GameRootPath + "\\Songs";
 
         private void Awake()
@@ -150,7 +154,7 @@ namespace YunyunLoader
 
             if (www.result != UnityWebRequest.Result.Success)
             {
-                Plugin.Log.LogError("Failed to load .ogg file from " + path);
+                Log.LogError("Failed to load .ogg file from " + path);
                 return null;
             }
             return DownloadHandlerAudioClip.GetContent(www);

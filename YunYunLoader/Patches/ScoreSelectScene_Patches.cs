@@ -9,7 +9,7 @@ using YunyunLoader;
 namespace YunYunLoader.Patches
 {
     [HarmonyPatch(typeof(ScoreSelectScene), "CollectData")]
-    internal class ScoreSelectScene_Patches
+    internal class ScoreSelectScene_CollectData
     {
         // reimplementation of ScoreSelectScene.CollectData
         // all members are private so we have to use reflection in order to recreate the functionality
@@ -37,6 +37,9 @@ namespace YunYunLoader.Patches
                     newScoreData = dict[data.ID];
                 }
                 
+                // mark the level as unlocked
+                AccessTools.Field(scoreDataType, "Locked").SetValue(newScoreData, false);
+                
                 // build our fake ScoreInfo data
                 FieldInfo infosField = AccessTools.Field(scoreDataType, "Infos");
                 IDictionary? infos = infosField.GetValue(newScoreData) as IDictionary;
@@ -46,7 +49,7 @@ namespace YunYunLoader.Patches
                     continue;
                 }
                 foreach (ModdedLevelData d in data.Levels!)
-                    infos.Add((ScoreLevel)d.Data!.Level, new ScoreInfo { Id = d.ID, MusicName = data.ID, Level = d.Data!.Level, Timestamp = 0 });
+                    infos.Add((ScoreLevel)d.Data!.Level, new ScoreInfo { Id = d.ID, MusicName = data.ID, Level = d.Data!.Level, Timestamp = -1 });
                 infosField.SetValue(newScoreData, infos);
 
                 // build our fake ScoreLevelData data
@@ -58,7 +61,7 @@ namespace YunYunLoader.Patches
                     continue;
                 }
                 foreach (ModdedLevelData d in data.Levels!)
-                    levels.Add((ScoreLevel)d.Data!.Level, new ScoreLevelData { Level = (ScoreLevel)d.Data!.Level, Difficulty = d.Difficulty, MusicID = data.ID, Name = d.ID, TAG = "MOD" });
+                    levels.Add((ScoreLevel)d.Data!.Level, new ScoreLevelData { Level = (ScoreLevel)d.Data!.Level, Difficulty = d.Difficulty, MusicID = data.ID, Name = d.ID, TAG = "MOD", Group = ScoreGroup.Normal, Order = 0});
                 levelsField.SetValue(newScoreData, levels);
 
                 // add the result
@@ -66,6 +69,21 @@ namespace YunYunLoader.Patches
             }
             // update the field with our modified dictionary
             field.SetValue(__instance, dict);
+        }
+    }
+
+    [HarmonyPatch(typeof(ScoreSelectScene), "CanPlay")]
+    internal class ScoreSelectScene_CanPlay
+    {
+        private static bool Prefix(ScoreInfo info, ref bool __result)
+        {
+            if (Plugin.ModdedSongs.ContainsKey(info.Id))
+            {
+                __result = true;
+                return false;
+            }
+
+            return true;
         }
     }
 }
