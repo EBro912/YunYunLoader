@@ -1,11 +1,8 @@
-# Notice
-This repo currently only works on the early demo versions of the game. A version for the full release of the game has not yet been developed.
-
 # YunYunLoader
 A custom song loader for YunYun Syndrome!? Rhythm Psychosis. Allows you to load custom maps and music into the game through simple configuration files.
 
 ## Installation
-Requires the latest stable release of [BepInEx 5](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.4). After downloading, simply extract the contents of the archive into the game's root folder (where the main game executable is). If your system asks to overwrite any files, click "Yes".
+Requires the latest stable release of [BepInEx 5](https://github.com/BepInEx/BepInEx/releases/). After downloading, simply extract the contents of the archive into the game's root folder (where the main game executable is). If your system asks to overwrite any files, click "Yes".
 
 After downloading and installing BepInEx, it is recommended to run the game at least once to generate all necessary files. Afterward, you can download the latest release of the mod in the **Releases** section, and place the `.dll` file in the `BepInEx/plugins` folder, located in the same game root folder.
 
