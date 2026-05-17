@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using YYNoteEditor;
+﻿using System.Collections.Generic;
 
 namespace YunYunLoader
 {
@@ -8,8 +6,10 @@ namespace YunYunLoader
     {
         public string? ID;
         public string? Audio;
+        public string? Icon;
         public string? Title;
         public string? Artist;
+        public string? ListArtist;
         public string? Lyricist;
         public string? Composer;
         public string? Arranger;

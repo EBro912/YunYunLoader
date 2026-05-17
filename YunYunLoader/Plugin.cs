@@ -4,27 +4,26 @@ using Cysharp.Threading.Tasks;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Localization.Settings;
 using UnityEngine.Localization.Tables;
 using UnityEngine.Networking;
-using YunYunLoader;
 using YYNoteEditor;
 using Newtonsoft.Json;
 
-namespace YunyunLoader
+namespace YunYunLoader
 {
-    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.1.0")]
+    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.2.0")]
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony Harmony = new Harmony("YunYunLoader");
 
         internal static ManualLogSource Log;
 
-        internal static Dictionary<string, AudioClip> LoadedAudioClips = new Dictionary<string, AudioClip>();
-        internal static Dictionary<string, ModdedScoreData> ModdedSongs = new Dictionary<string, ModdedScoreData>();
+        internal static readonly Dictionary<string, AudioClip> LoadedAudioClips = new Dictionary<string, AudioClip>();
+        internal static readonly Dictionary<string, Sprite> LoadedSprites = new Dictionary<string, Sprite>();
+        internal static readonly Dictionary<string, ModdedScoreData> ModdedSongs = new Dictionary<string, ModdedScoreData>();
 
         internal static bool IsModdedSongResult;
         internal static bool SavedIsPlayedPost;
@@ -49,7 +48,6 @@ namespace YunyunLoader
 
         async UniTaskVoid Start()
         {
-            StringTable table = LocalizationSettings.StringDatabase.GetTable("ScoreData");
             int songsLoaded = 0;
             foreach (string dir in Directory.GetDirectories(SongsPath))
             {
@@ -61,7 +59,8 @@ namespace YunyunLoader
                 ModdedScoreData? data;
                 try
                 {
-                     data = JsonConvert.DeserializeObject<ModdedScoreData>(File.ReadAllText(dir + "\\song.json"));
+                    string json = await File.ReadAllTextAsync(dir + "\\song.json");
+                    data = JsonConvert.DeserializeObject<ModdedScoreData>(json);
                 }
                 catch
                 {
@@ -97,13 +96,27 @@ namespace YunyunLoader
                 if (clip == null)
                     continue;
 
+                if (!string.IsNullOrEmpty(data.Icon))
+                {
+                    Texture2D? texture = await LoadTextureAsync(dir + "\\" + data.Icon);
+                    if (texture == null)
+                    {
+                        Logger.LogWarning("Failed to load icon " + data.Icon + " from song.json in " + dir + ", skipping!");
+                    }
+                    else
+                    {
+                        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                        LoadedSprites[Path.GetFileNameWithoutExtension(data.Icon)] = sprite;
+                    }
+                }
                 LoadedAudioClips[Path.GetFileNameWithoutExtension(data.Audio!)] = clip;
                 foreach (ModdedLevelData l in data.Levels!)
                 {
                     ScoreData? score;
                     try
                     {
-                        score = JsonConvert.DeserializeObject<ScoreData>(File.ReadAllText(dir + "\\" + l.Path));
+                        string json = await File.ReadAllTextAsync(dir + "\\" + l.Path);
+                        score = JsonConvert.DeserializeObject<ScoreData>(json);
                     }
                     catch
                     {
@@ -118,30 +131,41 @@ namespace YunyunLoader
                     }
 
                     l.ID = Path.GetFileNameWithoutExtension(l.Path);
-                    table.AddEntry(l.ID + "_EDITOR", l.Editor);
                     l.Data = score;
                 }
-                AddLocalizationData(data, ref table);
                 ModdedSongs[data.ID!] = data;
                 songsLoaded++;
             }
 
+            LocalizedStringDatabase db = LocalizationSettings.StringDatabase;
+            PopulateScoreDataTable(db.GetTable("ScoreData"));
+            // hook our table postprocessor into the localization system, the base game doesn't use it
+            db.TablePostprocessor = new ScoreDataTablePostprocessor(db.TablePostprocessor);
+
             Logger.LogInfo("Loaded " + songsLoaded + " custom songs!");
         }
 
-        internal static bool TryGetSongByTitle(string musicName, out ModdedScoreData result)
+        internal static void PopulateScoreDataTable(StringTable table)
         {
-            result = ModdedSongs.Values.FirstOrDefault(x => x.Title == musicName);
-            return result != null;
-        }
+            // modded songs only have one language (for now), so just use whatever it is every time regardless of locale
+            foreach (ModdedScoreData data in ModdedSongs.Values)
+            {
+                table.AddEntry(data.ID, data.Title);
+                table.AddEntry(data.ID + "_ARTIST", data.Artist);
+                table.AddEntry(data.ID + "_LISTARTIST", data.ListArtist);
+                table.AddEntry(data.ID + "_LYRICS", data.Lyricist);
+                table.AddEntry(data.ID + "_COMP", data.Composer);
+                table.AddEntry(data.ID + "_ARRAN", data.Arranger);
 
-        private void AddLocalizationData(ModdedScoreData data, ref StringTable table)
-        {
-            table.AddEntry(data.ID, data.Title);
-            table.AddEntry(data.ID + "_ARTIST", data.Artist);
-            table.AddEntry(data.ID + "_LYRICS", data.Lyricist);
-            table.AddEntry(data.ID + "_COMP", data.Composer);
-            table.AddEntry(data.ID + "_ARRAN", data.Arranger);
+                if (data.Levels == null)
+                    continue;
+
+                foreach (ModdedLevelData l in data.Levels)
+                {
+                    if (!string.IsNullOrEmpty(l.ID))
+                        table.AddEntry(l.ID + "_EDITOR", l.Editor);
+                }
+            }
         }
 
         private async UniTask<AudioClip?> LoadOggAsync(string path)
@@ -157,7 +181,25 @@ namespace YunyunLoader
                 Log.LogError("Failed to load .ogg file from " + path);
                 return null;
             }
+            
             return DownloadHandlerAudioClip.GetContent(www);
+        }
+        
+        private async UniTask<Texture2D?> LoadTextureAsync(string path)
+        {
+            string uri = Utility.ConvertToWWWFormat(path);
+            using UnityWebRequest www = UnityWebRequestTexture.GetTexture(uri);
+            var operation = www.SendWebRequest();
+            while (!operation.isDone)
+                await UniTask.Yield();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Log.LogError("Failed to load .png/.jpg file from " + path);
+                return null;
+            }
+            
+            return DownloadHandlerTexture.GetContent(www);
         }
     }
 }

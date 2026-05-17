@@ -1,9 +1,8 @@
-﻿using App;
+﻿using System.IO;
+using App;
 using App.Binding;
-using App.Data;
 using HarmonyLib;
-using System.Linq;
-using YunyunLoader;
+using UnityEngine;
 
 namespace YunYunLoader.Patches
 {
@@ -12,13 +11,20 @@ namespace YunYunLoader.Patches
     {
         private static bool Prefix(string musicID, UIScoreDetail __instance)
         {
-            if (Plugin.TryGetSongByTitle(musicID, out ModdedScoreData data))
+            if (Plugin.ModdedSongs.TryGetValue(musicID, out ModdedScoreData? data))
             {
+                if (data == null)
+                    return true;
+
+                __instance.MusicId = musicID;
+                Sprite? icon = null;
+                __instance.HasMusicLogo = !string.IsNullOrWhiteSpace(data.Icon) && Plugin.LoadedSprites.TryGetValue(Path.GetFileNameWithoutExtension(data.Icon), out icon);
+                __instance.MusicLogo = icon;
                 __instance.Title = LKey.ScoreData.Get(musicID);
-                __instance.Singer = LKey.Text.HUD_Score_Singer.WithParam("name", data.Artist);
-                __instance.Composer = LKey.Text.HUD_Score_Composer.WithParam("name", data.Composer);
-                __instance.Writer = LKey.Text.HUD_Score_Lyricist.WithParam("name", data.Lyricist);
-                __instance.Arrangement = LKey.Text.HUD_Score_Arrangement.WithParam("name", data.Arranger);
+                __instance.Singer = LKey.Text.HUD_Score_Singer.WithParam("name", LKey.ScoreData.Get(musicID + "_ARTIST"));
+                __instance.Composer = LKey.Text.HUD_Score_Composer.WithParam("name", LKey.ScoreData.Get(musicID + "_COMP"));
+                __instance.Writer = LKey.Text.HUD_Score_Lyricist.WithParam("name", LKey.ScoreData.Get(musicID + "_LYRICS"));
+                __instance.Arrangement = LKey.Text.HUD_Score_Arrangement.WithParam("name", LKey.ScoreData.Get(musicID + "_ARRAN"));
                 return false;
             }
             return true;

@@ -67,11 +67,17 @@
     <Reference Include="UnityEngine.JSONSerializeModule">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.UI.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.UnityWebRequestAudioModule">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestTextureModule">
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
     </Reference>
     <Reference Include="UVMBinding">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UVMBinding.dll</HintPath>

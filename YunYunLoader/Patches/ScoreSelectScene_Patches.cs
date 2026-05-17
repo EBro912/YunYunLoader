@@ -4,7 +4,6 @@ using HarmonyLib;
 using System;
 using System.Collections;
 using System.Reflection;
-using YunyunLoader;
 
 namespace YunYunLoader.Patches
 {

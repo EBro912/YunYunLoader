@@ -5,7 +5,6 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
-using YunyunLoader;
 
 namespace YunYunLoader.Patches
 {
