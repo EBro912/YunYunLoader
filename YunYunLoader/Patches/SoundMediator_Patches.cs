@@ -5,7 +5,6 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
-using YunyunLoader;
 
 namespace YunYunLoader.Patches
 {
@@ -31,8 +30,7 @@ namespace YunYunLoader.Patches
 
         private static void SetClip(AudioSource source, AudioClip clip, SoundMediator self)
         {
-            string? current = AccessTools.Field(typeof(SoundMediator), "m_PlayCurrent").GetValue(self) as string;
-            if (current == null)
+            if (!(AccessTools.Field(typeof(SoundMediator), "m_PlayCurrent").GetValue(self) is string current))
             {
                 // if we can't get the current song, mirror original behavior
                 source.clip = clip;
@@ -41,7 +39,7 @@ namespace YunYunLoader.Patches
 
             if (Plugin.ModdedSongs.TryGetValue(current, out ModdedScoreData result))
             {
-                if (Plugin.LoadedAudioClips.TryGetValue(Path.GetFileNameWithoutExtension(result.Audio), out AudioClip c))
+                if (result.ID != null && Plugin.LoadedAudioClips.TryGetValue(result.ID, out AudioClip c))
                 {
                     source.clip = c;
                 }
