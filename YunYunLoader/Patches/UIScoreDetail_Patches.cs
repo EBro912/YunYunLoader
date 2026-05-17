@@ -1,5 +1,4 @@
-﻿using System.IO;
-using App;
+﻿using App;
 using App.Binding;
 using HarmonyLib;
 using UnityEngine;
@@ -13,12 +12,12 @@ namespace YunYunLoader.Patches
         {
             if (Plugin.ModdedSongs.TryGetValue(musicID, out ModdedScoreData? data))
             {
-                if (data == null)
+                if (data?.ID is null)
                     return true;
 
                 __instance.MusicId = musicID;
                 Sprite? icon = null;
-                __instance.HasMusicLogo = !string.IsNullOrWhiteSpace(data.Icon) && Plugin.LoadedSprites.TryGetValue(Path.GetFileNameWithoutExtension(data.Icon), out icon);
+                __instance.HasMusicLogo = !string.IsNullOrWhiteSpace(data.Icon) && Plugin.LoadedSprites.TryGetValue(data.ID, out icon);
                 __instance.MusicLogo = icon;
                 __instance.Title = LKey.ScoreData.Get(musicID);
                 __instance.Singer = LKey.Text.HUD_Score_Singer.WithParam("name", LKey.ScoreData.Get(musicID + "_ARTIST"));

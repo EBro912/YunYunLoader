@@ -21,9 +21,12 @@ namespace YunYunLoader.Patches
             // local ScoreData class is private
             Type scoreDataType = AccessTools.TypeByName("App.ScoreSelectScene+ScoreData");
 
-            foreach (var data in Plugin.ModdedSongs.Values)
+            foreach (ModdedScoreData data in Plugin.ModdedSongs.Values)
             {
                 object? newScoreData;
+                
+                if (data.ID is null)
+                    continue;
 
                 if (!dict.Contains(data.ID))
                 {
@@ -41,8 +44,7 @@ namespace YunYunLoader.Patches
                 
                 // build our fake ScoreInfo data
                 FieldInfo infosField = AccessTools.Field(scoreDataType, "Infos");
-                IDictionary? infos = infosField.GetValue(newScoreData) as IDictionary;
-                if (infos == null)
+                if (!(infosField.GetValue(newScoreData) is IDictionary infos))
                 {
                     Plugin.Log.LogError("Failed to get Infos dictionary.");
                     continue;
@@ -53,8 +55,7 @@ namespace YunYunLoader.Patches
 
                 // build our fake ScoreLevelData data
                 FieldInfo levelsField = AccessTools.Field(scoreDataType, "Levels");
-                IDictionary? levels = levelsField.GetValue(newScoreData) as IDictionary;
-                if (levels == null)
+                if (!(levelsField.GetValue(newScoreData) is IDictionary levels))
                 {
                     Plugin.Log.LogError("Failed to get Levels dictionary.");
                     continue;

@@ -68,48 +68,55 @@ namespace YunYunLoader
                     continue;
                 }
 
-                if (data == null)
+                if (data is null)
                 {
                     Logger.LogError("Failed to parse song.json in " + dir);
-                    continue;
-                }
-
-                if (ModdedSongs.ContainsKey(data.ID!))
-                {
-                    Logger.LogWarning("Duplicate song ID " + data.ID + " in " + dir + ", skipping!");
                     continue;
                 }
 
                 bool failure = false;
                 foreach (FieldInfo f in typeof(ModdedScoreData).GetFields())
                 {
-                    if (f.GetValue(data) == null)
+                    if (f.GetValue(data) is null)
                     {
                         Logger.LogError("Missing field " + f.Name + " in song.json in " + dir);
                         failure = true;
                     }
                 }
-                if (failure)
+                if (failure || data.ID is null)
                     continue;
+                
+                if (ModdedSongs.ContainsKey(data.ID))
+                {
+                    Logger.LogWarning("Duplicate song ID " + data.ID + " in " + dir + ", skipping!");
+                    continue;
+                }
 
-                AudioClip? clip = await LoadOggAsync(dir + "\\" + data.Audio!);
-                if (clip == null)
+                AudioClip? clip = await LoadOggAsync(dir + "\\" + data.Audio);
+                if (clip is null)
                     continue;
 
                 if (!string.IsNullOrEmpty(data.Icon))
                 {
                     Texture2D? texture = await LoadTextureAsync(dir + "\\" + data.Icon);
-                    if (texture == null)
+                    if (texture is null)
                     {
                         Logger.LogWarning("Failed to load icon " + data.Icon + " from song.json in " + dir + ", skipping!");
                     }
                     else
                     {
                         Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                        LoadedSprites[Path.GetFileNameWithoutExtension(data.Icon)] = sprite;
+                        if (!LoadedSprites.TryAdd(data.ID, sprite))
+                        {
+                            Logger.LogWarning(data.ID + " already has a loaded sprite, skipping!");
+                        }
                     }
                 }
-                LoadedAudioClips[Path.GetFileNameWithoutExtension(data.Audio!)] = clip;
+
+                if (!LoadedAudioClips.TryAdd(data.ID, clip))
+                {
+                    Logger.LogWarning(data.ID + " already has a loaded audio, skipping!");
+                }
                 foreach (ModdedLevelData l in data.Levels!)
                 {
                     ScoreData? score;
@@ -133,7 +140,7 @@ namespace YunYunLoader
                     l.ID = Path.GetFileNameWithoutExtension(l.Path);
                     l.Data = score;
                 }
-                ModdedSongs[data.ID!] = data;
+                ModdedSongs[data.ID] = data;
                 songsLoaded++;
             }
 

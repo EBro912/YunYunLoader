@@ -31,10 +31,10 @@ namespace YunYunLoader.Patches
         private static async UniTask<ScoreDataSet> AppendCustomData(ModdedScoreData data, int level)
         {
             await UniTask.CompletedTask;
-            if (!Plugin.LoadedAudioClips.TryGetValue(Path.GetFileNameWithoutExtension(data.Audio), out AudioClip clip))
+            if (data.ID is null || data.Levels is null || !Plugin.LoadedAudioClips.TryGetValue(data.ID, out AudioClip clip))
                 return null!;
             ModdedLevelData? levelData = data.Levels.FirstOrDefault(x => x.Data!.Level == level);
-            if (levelData == null)
+            if (levelData is null)
                 return null!;
             return new ScoreDataSet
             {
