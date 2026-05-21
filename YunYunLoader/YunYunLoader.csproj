@@ -37,6 +37,9 @@
     <Reference Include="ILib.ServInjector">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\ILib.ServInjector.dll</HintPath>
     </Reference>
+    <Reference Include="ILib.UI.Control">
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\ILib.UI.Control.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -81,6 +84,9 @@
     </Reference>
     <Reference Include="UVMBinding">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UVMBinding.dll</HintPath>
+    </Reference>
+    <Reference Include="UVMBinding.UI">
+      <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UVMBinding.UI.dll</HintPath>
     </Reference>
     <Reference Include="UVMBinding.Localization">
       <HintPath>$(LibRoot)\Yunyun_Syndrome_Data\Managed\UVMBinding.Localization.dll</HintPath>
