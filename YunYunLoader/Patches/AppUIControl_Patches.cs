@@ -43,9 +43,10 @@ namespace YunYunLoader.Patches
 
             GameObject button = Object.Instantiate(buttonsRoot.GetChild(0).gameObject, buttonsRoot);
             button.name = "ReloadMods";
-            button.transform.position = new Vector3(0.285f, -0.8f, 100f);
-            // TODO: fix button position on the title help page (it's different for some reason...)
-            // button.transform.position = new Vector3(0.845f, -0.8f, 100f);
+            // the button layout on the title screen has a different child layout than the desktop screen
+            button.transform.position = __instance.gameObject.name.StartsWith("UITitle") ? 
+                new Vector3(0.845f, -0.8f, 100f) : 
+                new Vector3(0.285f, -0.8f, 100f);
             
             // strip localization so our label survives locale changes
             foreach (LocalizeStringEvent loc in button.GetComponentsInChildren<LocalizeStringEvent>(true))

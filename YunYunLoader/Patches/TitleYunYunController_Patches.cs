@@ -14,22 +14,31 @@ namespace YunYunLoader.Patches
         // utilize the title screen YunYun GameObject to help add our version watermark to the title screen
         // has some node traversal hacks, but it works
         // UITitleBase doesn't implement IBindUIControl like UIScoreList does so we can't reuse that patch method
-        private static async void Postfix(TitleYunYunController __instance)
+        private static void Postfix(TitleYunYunController __instance)
         {
-            // UITitleBase/Contents (relative to TitleYunYun)
-            Transform contents = __instance.transform.parent.parent.parent;
-            if (contents == null)
-            {
-                Plugin.Log.LogError("Failed to find UITitleBase/Contents.");
-                return;
-            }
-            
-            // the title screen has multiple textframes, so scaffold by children
-            // UITitleBase/Contents/DefaultChara/TextFrame/Text
-            Transform text = contents.GetChild(1).GetChild(1).GetChild(0);
+            // UITitleBase/Contents/DefaultChara/YunYun/Frame..TitleYunYun
+            // UIHelp/Contents/TitleCharaSet/DefaultChara/YunYun/Frame/TitleYunYun
+
+            // DefaultChara/YunYun/TitleYunYun
+            Transform defaultChara = __instance.transform.parent.parent;
+            // DefaultChara/TextFrame/Text
+            Transform text = defaultChara.GetChild(1).GetChild(0);
             if (text == null)
             {
-                Plugin.Log.LogError("Failed to find UITitleBase/Contents/DefaultChara/TextFrame/Text.");
+                Plugin.Log.LogError("Failed to find DefaultChara/TextFrame/Text.");
+                return;
+            }
+
+            // scaffold upward in the tree to find the Contents parent
+            // the layout is different depending on the UI, but Contents should always be there
+            // it's usually only 1-2 away but loop it just to be safe
+            Transform? contents = defaultChara.parent;
+            while (contents?.name != "Contents") 
+                contents = contents?.parent;
+            
+            if (contents == null)
+            {
+                Plugin.Log.LogError("Failed to find Contents parent.");
                 return;
             }
 

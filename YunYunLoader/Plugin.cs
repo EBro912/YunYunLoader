@@ -3,6 +3,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using App;
 using Cysharp.Threading.Tasks;
@@ -32,6 +33,7 @@ namespace YunYunLoader
         internal static bool SavedIsRankingEntry;
 
         private static readonly string SongsPath = Paths.GameRootPath + "\\Songs";
+        private static readonly string ExtractedZipsPath = Path.Combine(Path.GetTempPath(), "YunYunLoader");
 
         private void Awake()
         {
@@ -63,107 +65,136 @@ namespace YunYunLoader
             ModdedSongs.Clear();
             LoadedAudioClips.Clear();
             LoadedSprites.Clear();
+
+            if (Directory.Exists(ExtractedZipsPath))
+                Directory.Delete(ExtractedZipsPath, true);
+            Directory.CreateDirectory(ExtractedZipsPath);
+
             int songsAvailable = 0;
             int songsLoaded = 0;
+
             foreach (string dir in Directory.GetDirectories(SongsPath))
             {
                 songsAvailable++;
-                if (!File.Exists(dir + "\\song.json"))
-                {
-                    Log.LogWarning("No song.json found in " + dir + ", skipping!");
-                    continue;
-                }
-                ModdedScoreData? data;
+                if (await LoadSongFromDirectory(dir))
+                    songsLoaded++;
+            }
+
+            foreach (string zipPath in Directory.GetFiles(SongsPath, "*.zip"))
+            {
+                songsAvailable++;
+                string extractDir = Path.Combine(ExtractedZipsPath, Path.GetFileNameWithoutExtension(zipPath));
                 try
                 {
-                    string json = await File.ReadAllTextAsync(dir + "\\song.json");
-                    data = JsonConvert.DeserializeObject<ModdedScoreData>(json);
+                    ZipFile.ExtractToDirectory(zipPath, extractDir);
                 }
                 catch
                 {
-                    Log.LogError("Failed to parse song.json in " + dir);
+                    Log.LogError("Failed to extract zip " + zipPath);
                     continue;
                 }
-
-                if (data is null)
-                {
-                    Log.LogError("Failed to parse song.json in " + dir);
-                    continue;
-                }
-
-                bool failure = false;
-                foreach (FieldInfo f in typeof(ModdedScoreData).GetFields())
-                {
-                    if (f.GetValue(data) is null)
-                    {
-                        Log.LogError("Missing field " + f.Name + " in song.json in " + dir);
-                        failure = true;
-                    }
-                }
-                if (failure || data.ID is null)
-                    continue;
-                
-                if (ModdedSongs.ContainsKey(data.ID))
-                {
-                    Log.LogWarning("Duplicate song ID " + data.ID + " in " + dir + ", skipping!");
-                    continue;
-                }
-
-                AudioClip? clip = await LoadOggAsync(dir + "\\" + data.Audio);
-                if (clip is null)
-                    continue;
-
-                if (!string.IsNullOrEmpty(data.Icon))
-                {
-                    Texture2D? texture = await LoadTextureAsync(dir + "\\" + data.Icon);
-                    if (texture is null)
-                    {
-                        Log.LogWarning("Failed to load icon " + data.Icon + " from song.json in " + dir + ", skipping!");
-                    }
-                    else
-                    {
-                        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                        if (!LoadedSprites.TryAdd(data.ID, sprite))
-                        {
-                            Log.LogWarning(data.ID + " already has a loaded sprite, skipping!");
-                        }
-                    }
-                }
-
-                if (!LoadedAudioClips.TryAdd(data.ID, clip))
-                {
-                    Log.LogWarning(data.ID + " already has a loaded audio, skipping!");
-                }
-                foreach (ModdedLevelData l in data.Levels!)
-                {
-                    ScoreData? score;
-                    try
-                    {
-                        string json = await File.ReadAllTextAsync(dir + "\\" + l.Path);
-                        score = JsonConvert.DeserializeObject<ScoreData>(json);
-                    }
-                    catch
-                    {
-                        Log.LogError("Failed to parse song data " + l.Path + " in " + dir);
-                        continue;
-                    }
-
-                    if (score == null)
-                    {
-                        Log.LogError("Failed to parse song data " + l.Path + " in " + dir);
-                        continue;
-                    }
-
-                    l.ID = Path.GetFileNameWithoutExtension(l.Path);
-                    l.Data = score;
-                }
-                ModdedSongs[data.ID] = data;
-                songsLoaded++;
+                if (await LoadSongFromDirectory(extractDir))
+                    songsLoaded++;
             }
-            
+
             Log.LogInfo($"Loaded {LoadedAudioClips.Count} audio clips.");
             Log.LogInfo($"Loaded {LoadedSprites.Count} custom sprites.");
             Log.LogInfo($"Loaded {songsLoaded}/{songsAvailable} custom songs!");
+        }
+
+        private static async UniTask<bool> LoadSongFromDirectory(string dir)
+        {
+            if (!File.Exists(dir + "\\song.json"))
+            {
+                Log.LogWarning("No song.json found in " + dir + ", skipping!");
+                return false;
+            }
+            ModdedScoreData? data;
+            try
+            {
+                string json = await File.ReadAllTextAsync(dir + "\\song.json");
+                data = JsonConvert.DeserializeObject<ModdedScoreData>(json);
+            }
+            catch
+            {
+                Log.LogError("Failed to parse song.json in " + dir);
+                return false;
+            }
+
+            if (data is null)
+            {
+                Log.LogError("Failed to parse song.json in " + dir);
+                return false;
+            }
+
+            bool failure = false;
+            foreach (FieldInfo f in typeof(ModdedScoreData).GetFields())
+            {
+                if (f.GetValue(data) is null)
+                {
+                    Log.LogError("Missing field " + f.Name + " in song.json in " + dir);
+                    failure = true;
+                }
+            }
+            if (failure || data.ID is null)
+                return false;
+
+            if (ModdedSongs.ContainsKey(data.ID))
+            {
+                Log.LogWarning("Duplicate song ID " + data.ID + " in " + dir + ", skipping!");
+                return false;
+            }
+
+            AudioClip? clip = await LoadOggAsync(dir + "\\" + data.Audio);
+            if (clip is null)
+                return false;
+
+            if (!string.IsNullOrEmpty(data.Icon))
+            {
+                Texture2D? texture = await LoadTextureAsync(dir + "\\" + data.Icon);
+                if (texture is null)
+                {
+                    Log.LogWarning("Failed to load icon " + data.Icon + " from song.json in " + dir + ", skipping!");
+                }
+                else
+                {
+                    Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                    if (!LoadedSprites.TryAdd(data.ID, sprite))
+                    {
+                        Log.LogWarning(data.ID + " already has a loaded sprite, skipping!");
+                    }
+                }
+            }
+
+            if (!LoadedAudioClips.TryAdd(data.ID, clip))
+            {
+                Log.LogWarning(data.ID + " already has a loaded audio, skipping!");
+            }
+            foreach (ModdedLevelData l in data.Levels!)
+            {
+                ScoreData? score;
+                try
+                {
+                    string json = await File.ReadAllTextAsync(dir + "\\" + l.Path);
+                    score = JsonConvert.DeserializeObject<ScoreData>(json);
+                }
+                catch
+                {
+                    Log.LogError("Failed to parse song data " + l.Path + " in " + dir);
+                    continue;
+                }
+
+                if (score == null)
+                {
+                    Log.LogError("Failed to parse song data " + l.Path + " in " + dir);
+                    continue;
+                }
+
+                l.ID = Path.GetFileNameWithoutExtension(l.Path);
+                l.Data = score;
+            }
+            ModdedSongs[data.ID] = data;
+            return true;
         }
 
         internal static void PopulateScoreDataTable(StringTable table)
