@@ -60,7 +60,7 @@ namespace YunYunLoader
             db.TablePostprocessor = new ScoreDataTablePostprocessor(db.TablePostprocessor);
         }
 
-        internal static async UniTask LoadCustomSongs()
+        internal static async UniTask<bool> LoadCustomSongs()
         {
             ModdedSongs.Clear();
             LoadedAudioClips.Clear();
@@ -100,6 +100,9 @@ namespace YunYunLoader
             Log.LogInfo($"Loaded {LoadedAudioClips.Count} audio clips.");
             Log.LogInfo($"Loaded {LoadedSprites.Count} custom sprites.");
             Log.LogInfo($"Loaded {songsLoaded}/{songsAvailable} custom songs!");
+
+            // return true if everything loaded cleanly
+            return songsLoaded == songsAvailable;
         }
 
         private static async UniTask<bool> LoadSongFromDirectory(string dir)
@@ -257,6 +260,11 @@ namespace YunYunLoader
         public static async UniTask Notify(string text)
         {
             await ServInjector.Resolve<ISystemUI>().Notify(text);
+        }
+        
+        public static async UniTask<bool> Confirm(string text)
+        {
+            return await ServInjector.Resolve<ISystemUI>().Confirm(text);
         }
     }
 }

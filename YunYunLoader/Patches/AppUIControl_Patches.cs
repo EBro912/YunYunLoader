@@ -71,10 +71,16 @@ namespace YunYunLoader.Patches
         // ReSharper disable once AsyncVoidMethod
         private static async void OnReloadMods()
         {
-            Loading = true;
-            await Plugin.LoadCustomSongs();
-            Loading = false;
-            await Plugin.Notify($"Reloaded {Plugin.ModdedSongs.Count} modded songs!");
+            if (await Plugin.Confirm("Reload all modded songs?"))
+            {
+                Loading = true;
+                bool clean = await Plugin.LoadCustomSongs();
+                Loading = false;
+                if (clean)
+                    await Plugin.Notify($"Reloaded {Plugin.ModdedSongs.Count} modded songs!");
+                else
+                    await Plugin.Notify($"Reloaded {Plugin.ModdedSongs.Count} modded songs!\n\nNote: One or more songs failed to load.\nCheck your console/logs for more information.");
+            }
         }
     }
 }
