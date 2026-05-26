@@ -13,6 +13,8 @@ After running the game again, the mod should load. If you would like a console a
 ## Using Custom Songs
 After launching the game with the mod once, the mod will generate a `Songs` folder in the game's root folder. You should place all of your custom songs in this folder, with each song and its relevant files in its own sub-folder. If you add or remove songs from this folder while the game is running, you will need to relaunch the game in order for the changes to take effect.
 
+YunYunLoader also supports loading mods from `.zip` files. They can be placed in the `Songs` folder alongside any other modded songs, and must have the same file structure as a folder driven mod. These will be extracted at load time to your computer's `temp` directory and loaded like any other modded song.
+
 When the mod loads custom songs, they should appear in the game's song list like any other vanilla song. Simply click on the custom song you want to play, choose a difficulty, and confirm your selection to begin playing!
 
 A valid `Songs` directory may look like the following:
@@ -27,6 +29,7 @@ Songs /
   | level1.json
   | level3.json
   | song.json
+| CompressedSong.zip
 // and so on...
 ```
 
