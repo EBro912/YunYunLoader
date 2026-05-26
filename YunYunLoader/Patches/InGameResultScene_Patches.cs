@@ -122,7 +122,7 @@ namespace YunYunLoader.Patches
 
         private static bool Prefix(ScoreRecordDataList __instance, ref bool __result)
         {
-            List<ScoreRecordData> list = listField.GetValue(__instance) as List<ScoreRecordData>;
+            List<ScoreRecordData>? list = listField.GetValue(__instance) as List<ScoreRecordData>;
             __result = false;
             if (list == null) return false;
             foreach (ScoreRecordData rec in list)
@@ -144,7 +144,7 @@ namespace YunYunLoader.Patches
 
         private static bool Prefix(ScoreRecordDataList __instance, ref bool __result)
         {
-            List<ScoreRecordData> list = listField.GetValue(__instance) as List<ScoreRecordData>;
+            List<ScoreRecordData>? list = listField.GetValue(__instance) as List<ScoreRecordData>;
             __result = false;
             if (list == null) return false;
             foreach (ScoreRecordData rec in list)

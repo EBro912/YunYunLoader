@@ -1,10 +1,13 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
-using Cysharp.Threading.Tasks;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
+using App;
+using Cysharp.Threading.Tasks;
+using ILib.ServInject;
 using UnityEngine;
 using UnityEngine.Localization.Settings;
 using UnityEngine.Localization.Tables;
@@ -14,13 +17,13 @@ using Newtonsoft.Json;
 
 namespace YunYunLoader
 {
-    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.2.0")]
+    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.3.0")]
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony Harmony = new Harmony("YunYunLoader");
 
         internal static ManualLogSource Log;
-
+        
         internal static readonly Dictionary<string, AudioClip> LoadedAudioClips = new Dictionary<string, AudioClip>();
         internal static readonly Dictionary<string, Sprite> LoadedSprites = new Dictionary<string, Sprite>();
         internal static readonly Dictionary<string, ModdedScoreData> ModdedSongs = new Dictionary<string, ModdedScoreData>();
@@ -30,6 +33,7 @@ namespace YunYunLoader
         internal static bool SavedIsRankingEntry;
 
         private static readonly string SongsPath = Paths.GameRootPath + "\\Songs";
+        private static readonly string ExtractedZipsPath = Path.Combine(Path.GetTempPath(), "YunYunLoader");
 
         private void Awake()
         {
@@ -48,108 +52,152 @@ namespace YunYunLoader
 
         async UniTaskVoid Start()
         {
-            int songsLoaded = 0;
-            foreach (string dir in Directory.GetDirectories(SongsPath))
-            {
-                if (!File.Exists(dir + "\\song.json"))
-                {
-                    Logger.LogWarning("No song.json found in " + dir + ", skipping!");
-                    continue;
-                }
-                ModdedScoreData? data;
-                try
-                {
-                    string json = await File.ReadAllTextAsync(dir + "\\song.json");
-                    data = JsonConvert.DeserializeObject<ModdedScoreData>(json);
-                }
-                catch
-                {
-                    Logger.LogError("Failed to parse song.json in " + dir);
-                    continue;
-                }
-
-                if (data is null)
-                {
-                    Logger.LogError("Failed to parse song.json in " + dir);
-                    continue;
-                }
-
-                bool failure = false;
-                foreach (FieldInfo f in typeof(ModdedScoreData).GetFields())
-                {
-                    if (f.GetValue(data) is null)
-                    {
-                        Logger.LogError("Missing field " + f.Name + " in song.json in " + dir);
-                        failure = true;
-                    }
-                }
-                if (failure || data.ID is null)
-                    continue;
-                
-                if (ModdedSongs.ContainsKey(data.ID))
-                {
-                    Logger.LogWarning("Duplicate song ID " + data.ID + " in " + dir + ", skipping!");
-                    continue;
-                }
-
-                AudioClip? clip = await LoadOggAsync(dir + "\\" + data.Audio);
-                if (clip is null)
-                    continue;
-
-                if (!string.IsNullOrEmpty(data.Icon))
-                {
-                    Texture2D? texture = await LoadTextureAsync(dir + "\\" + data.Icon);
-                    if (texture is null)
-                    {
-                        Logger.LogWarning("Failed to load icon " + data.Icon + " from song.json in " + dir + ", skipping!");
-                    }
-                    else
-                    {
-                        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                        if (!LoadedSprites.TryAdd(data.ID, sprite))
-                        {
-                            Logger.LogWarning(data.ID + " already has a loaded sprite, skipping!");
-                        }
-                    }
-                }
-
-                if (!LoadedAudioClips.TryAdd(data.ID, clip))
-                {
-                    Logger.LogWarning(data.ID + " already has a loaded audio, skipping!");
-                }
-                foreach (ModdedLevelData l in data.Levels!)
-                {
-                    ScoreData? score;
-                    try
-                    {
-                        string json = await File.ReadAllTextAsync(dir + "\\" + l.Path);
-                        score = JsonConvert.DeserializeObject<ScoreData>(json);
-                    }
-                    catch
-                    {
-                        Logger.LogError("Failed to parse song data " + l.Path + " in " + dir);
-                        continue;
-                    }
-
-                    if (score == null)
-                    {
-                        Logger.LogError("Failed to parse song data " + l.Path + " in " + dir);
-                        continue;
-                    }
-
-                    l.ID = Path.GetFileNameWithoutExtension(l.Path);
-                    l.Data = score;
-                }
-                ModdedSongs[data.ID] = data;
-                songsLoaded++;
-            }
-
+            await LoadCustomSongs();
+            
             LocalizedStringDatabase db = LocalizationSettings.StringDatabase;
             PopulateScoreDataTable(db.GetTable("ScoreData"));
             // hook our table postprocessor into the localization system, the base game doesn't use it
             db.TablePostprocessor = new ScoreDataTablePostprocessor(db.TablePostprocessor);
+        }
 
-            Logger.LogInfo("Loaded " + songsLoaded + " custom songs!");
+        internal static async UniTask<bool> LoadCustomSongs()
+        {
+            ModdedSongs.Clear();
+            LoadedAudioClips.Clear();
+            LoadedSprites.Clear();
+
+            if (Directory.Exists(ExtractedZipsPath))
+                Directory.Delete(ExtractedZipsPath, true);
+            Directory.CreateDirectory(ExtractedZipsPath);
+
+            int songsAvailable = 0;
+            int songsLoaded = 0;
+
+            foreach (string dir in Directory.GetDirectories(SongsPath))
+            {
+                songsAvailable++;
+                if (await LoadSongFromDirectory(dir))
+                    songsLoaded++;
+            }
+
+            foreach (string zipPath in Directory.GetFiles(SongsPath, "*.zip"))
+            {
+                songsAvailable++;
+                string extractDir = Path.Combine(ExtractedZipsPath, Path.GetFileNameWithoutExtension(zipPath));
+                try
+                {
+                    ZipFile.ExtractToDirectory(zipPath, extractDir);
+                }
+                catch
+                {
+                    Log.LogError("Failed to extract zip " + zipPath);
+                    continue;
+                }
+                if (await LoadSongFromDirectory(extractDir))
+                    songsLoaded++;
+            }
+
+            Log.LogInfo($"Loaded {LoadedAudioClips.Count} audio clips.");
+            Log.LogInfo($"Loaded {LoadedSprites.Count} custom sprites.");
+            Log.LogInfo($"Loaded {songsLoaded}/{songsAvailable} custom songs!");
+
+            // return true if everything loaded cleanly
+            return songsLoaded == songsAvailable;
+        }
+
+        private static async UniTask<bool> LoadSongFromDirectory(string dir)
+        {
+            if (!File.Exists(dir + "\\song.json"))
+            {
+                Log.LogWarning("No song.json found in " + dir + ", skipping!");
+                return false;
+            }
+            ModdedScoreData? data;
+            try
+            {
+                string json = await File.ReadAllTextAsync(dir + "\\song.json");
+                data = JsonConvert.DeserializeObject<ModdedScoreData>(json);
+            }
+            catch
+            {
+                Log.LogError("Failed to parse song.json in " + dir);
+                return false;
+            }
+
+            if (data is null)
+            {
+                Log.LogError("Failed to parse song.json in " + dir);
+                return false;
+            }
+
+            bool failure = false;
+            foreach (FieldInfo f in typeof(ModdedScoreData).GetFields())
+            {
+                if (f.GetValue(data) is null)
+                {
+                    Log.LogError("Missing field " + f.Name + " in song.json in " + dir);
+                    failure = true;
+                }
+            }
+            if (failure || data.ID is null)
+                return false;
+
+            if (ModdedSongs.ContainsKey(data.ID))
+            {
+                Log.LogWarning("Duplicate song ID " + data.ID + " in " + dir + ", skipping!");
+                return false;
+            }
+
+            AudioClip? clip = await LoadOggAsync(dir + "\\" + data.Audio);
+            if (clip is null)
+                return false;
+
+            if (!string.IsNullOrEmpty(data.Icon))
+            {
+                Texture2D? texture = await LoadTextureAsync(dir + "\\" + data.Icon);
+                if (texture is null)
+                {
+                    Log.LogWarning("Failed to load icon " + data.Icon + " from song.json in " + dir + ", skipping!");
+                }
+                else
+                {
+                    Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                    if (!LoadedSprites.TryAdd(data.ID, sprite))
+                    {
+                        Log.LogWarning(data.ID + " already has a loaded sprite, skipping!");
+                    }
+                }
+            }
+
+            if (!LoadedAudioClips.TryAdd(data.ID, clip))
+            {
+                Log.LogWarning(data.ID + " already has a loaded audio, skipping!");
+            }
+            foreach (ModdedLevelData l in data.Levels!)
+            {
+                ScoreData? score;
+                try
+                {
+                    string json = await File.ReadAllTextAsync(dir + "\\" + l.Path);
+                    score = JsonConvert.DeserializeObject<ScoreData>(json);
+                }
+                catch
+                {
+                    Log.LogError("Failed to parse song data " + l.Path + " in " + dir);
+                    continue;
+                }
+
+                if (score == null)
+                {
+                    Log.LogError("Failed to parse song data " + l.Path + " in " + dir);
+                    continue;
+                }
+
+                l.ID = Path.GetFileNameWithoutExtension(l.Path);
+                l.Data = score;
+            }
+            ModdedSongs[data.ID] = data;
+            return true;
         }
 
         internal static void PopulateScoreDataTable(StringTable table)
@@ -175,7 +223,7 @@ namespace YunYunLoader
             }
         }
 
-        private async UniTask<AudioClip?> LoadOggAsync(string path)
+        private static async UniTask<AudioClip?> LoadOggAsync(string path)
         {
             string uri = Utility.ConvertToWWWFormat(path);
             using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.OGGVORBIS);
@@ -192,7 +240,7 @@ namespace YunYunLoader
             return DownloadHandlerAudioClip.GetContent(www);
         }
         
-        private async UniTask<Texture2D?> LoadTextureAsync(string path)
+        private static async UniTask<Texture2D?> LoadTextureAsync(string path)
         {
             string uri = Utility.ConvertToWWWFormat(path);
             using UnityWebRequest www = UnityWebRequestTexture.GetTexture(uri);
@@ -207,6 +255,16 @@ namespace YunYunLoader
             }
             
             return DownloadHandlerTexture.GetContent(www);
+        }
+
+        public static async UniTask Notify(string text)
+        {
+            await ServInjector.Resolve<ISystemUI>().Notify(text);
+        }
+        
+        public static async UniTask<bool> Confirm(string text)
+        {
+            return await ServInjector.Resolve<ISystemUI>().Confirm(text);
         }
     }
 }
