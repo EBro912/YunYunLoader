@@ -17,7 +17,7 @@ using Newtonsoft.Json;
 
 namespace YunYunLoader
 {
-    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.3.0")]
+    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.3.1")]
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony Harmony = new Harmony("YunYunLoader");
@@ -93,7 +93,7 @@ namespace YunYunLoader
                     Log.LogError("Failed to extract zip " + zipPath);
                     continue;
                 }
-                if (await LoadSongFromDirectory(extractDir))
+                if (await LoadSongFromDirectory(ResolveSongDirectory(extractDir)))
                     songsLoaded++;
             }
 
@@ -103,6 +103,19 @@ namespace YunYunLoader
 
             // return true if everything loaded cleanly
             return songsLoaded == songsAvailable;
+        }
+
+        // support both flat and nested zips (like the ones exported from YunYunEditor)
+        private static string ResolveSongDirectory(string extractDir)
+        {
+            if (File.Exists(Path.Combine(extractDir, "song.json")))
+                return extractDir;
+
+            string[] subDirs = Directory.GetDirectories(extractDir);
+            if (subDirs.Length == 1 && File.Exists(Path.Combine(subDirs[0], "song.json")))
+                return subDirs[0];
+
+            return extractDir;
         }
 
         private static async UniTask<bool> LoadSongFromDirectory(string dir)
