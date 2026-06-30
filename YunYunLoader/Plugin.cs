@@ -17,7 +17,7 @@ using Newtonsoft.Json;
 
 namespace YunYunLoader
 {
-    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.3.1")]
+    [BepInPlugin("YunYunLoader", "YunYunLoader", "1.4.0")]
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony Harmony = new Harmony("YunYunLoader");
@@ -278,6 +278,28 @@ namespace YunYunLoader
         public static async UniTask<bool> Confirm(string text)
         {
             return await ServInjector.Resolve<ISystemUI>().Confirm(text);
+        }
+        
+        internal static bool IsModdedSong(string? musicId)
+        {
+            return musicId != null && ModdedSongs.ContainsKey(musicId);
+        }
+        
+        internal static bool IsModdedScoreId(string scoreId)
+        {
+            if (string.IsNullOrEmpty(scoreId))
+                return false;
+            foreach (ModdedScoreData data in ModdedSongs.Values)
+            {
+                if (data.Levels is null)
+                    continue;
+                foreach (ModdedLevelData level in data.Levels)
+                {
+                    if (level.ID == scoreId)
+                        return true;
+                }
+            }
+            return false;
         }
     }
 }

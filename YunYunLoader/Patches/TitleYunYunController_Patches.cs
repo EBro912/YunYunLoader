@@ -47,7 +47,7 @@ namespace YunYunLoader.Patches
             if (b != null) Object.Destroy(b);
             LocalizeStringEvent e = watermark.GetComponent<LocalizeStringEvent>();
             if (e != null) Object.Destroy(e);
-            watermark.GetComponent<Text>().text = "YunYunLoader v1.3.1";
+            watermark.GetComponent<Text>().text = "YunYunLoader v1.4.0";
             watermark.transform.position = new Vector3(2.925f, -1.85f, 100f);
         }
     }
