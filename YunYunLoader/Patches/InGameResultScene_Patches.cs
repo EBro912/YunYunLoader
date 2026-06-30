@@ -114,6 +114,18 @@ namespace YunYunLoader.Patches
         }
     }
 
+    // modded charts have no Steam leaderboard, so show an empty leaderboard instead of pinging a nonexistent one
+    [HarmonyPatch(typeof(AppSteamManager), nameof(AppSteamManager.GetRanking))]
+    internal class AppSteamManager_GetRanking
+    {
+        private static bool Prefix(string scoreId, ref UniTask<RankingResult> __result)
+        {
+            if (!Plugin.IsModdedScoreId(scoreId)) return true;
+            __result = UniTask.FromResult(new RankingResult { Entries = new List<RankingEntry>() });
+            return false;
+        }
+    }
+
     // unconditionally filter modded song IDs out of the any-record achievements 
     [HarmonyPatch(typeof(ScoreRecordDataList), nameof(ScoreRecordDataList.HasAnyRecordData))]
     internal class ScoreRecordDataList_HasAnyRecordData
@@ -127,7 +139,7 @@ namespace YunYunLoader.Patches
             if (list == null) return false;
             foreach (ScoreRecordData rec in list)
             {
-                if (rec.Rank != RecordRank.None && !Plugin.ModdedSongs.ContainsKey(rec.Name))
+                if (rec.Rank != RecordRank.None && !Plugin.IsModdedSong(rec.Name))
                 {
                     __result = true;
                     break;
@@ -149,7 +161,7 @@ namespace YunYunLoader.Patches
             if (list == null) return false;
             foreach (ScoreRecordData rec in list)
             {
-                if (rec.FullCombo && !Plugin.ModdedSongs.ContainsKey(rec.Name))
+                if (rec.FullCombo && !Plugin.IsModdedSong(rec.Name))
                 {
                     __result = true;
                     break;
@@ -168,7 +180,7 @@ namespace YunYunLoader.Patches
             long sum = __instance.DenpaPlayPoint + __instance.DenpaConspiracyTheoryPoint + __instance.DenpaEndingPoint;
             foreach (ScoreRecordData rec in __instance.ScoreRecords.GetAllData())
             {
-                if (Plugin.ModdedSongs.ContainsKey(rec.Name)) continue;
+                if (Plugin.IsModdedSong(rec.Name)) continue;
                 sum += DenpaPointUtil.CalcRecordDenpaPoint(rec);
             }
             __result = sum;
@@ -183,7 +195,7 @@ namespace YunYunLoader.Patches
         private static bool Prefix(ref int __result)
         {
             __result = SaveData.GetAllRecordData()
-                .Where(x => !Plugin.ModdedSongs.ContainsKey(x.Name))
+                .Where(x => !Plugin.IsModdedSong(x.Name))
                 .Sum(x => x.Point);
             return false;
         }
@@ -196,7 +208,7 @@ namespace YunYunLoader.Patches
         {
             __result = SaveData
                 .GetAllRecordData()
-                .Count(x => x.FullCombo && !Plugin.ModdedSongs.ContainsKey(x.Name));
+                .Count(x => x.FullCombo && !Plugin.IsModdedSong(x.Name));
             return false;
         }
     }

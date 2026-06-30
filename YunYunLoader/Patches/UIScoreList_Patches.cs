@@ -1,9 +1,11 @@
 using App;
 using App.Binding;
+using App.Data;
 using App.UI;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
@@ -15,13 +17,19 @@ namespace YunYunLoader.Patches
     [HarmonyPatch(typeof(UIScoreList), "ApplySort")]
     internal class UIScoreList_ApplySort
     {
-        // reimplementation of UIScoreList.ApplySort with our mod filtering included.
-        // FilterMod is a bool property we inject into the VM's PropertyContainer in
-        // UIScoreList.Bind, so it behaves exactly like the game's FilterNormal/FilterDLC
+        private static readonly FieldInfo applySortingField = AccessTools.Field(typeof(UIScoreList), "m_ApplySorting");
+        private static readonly FieldInfo onSortAppliedField = AccessTools.Field(typeof(UIScoreList), "OnSortApplied");
+
+        // Full reimplementation of UIScoreList.ApplySort with our extra "Mod" filter category
         private static bool Prefix(UIScoreList __instance)
         {
+            // reentrancy guard, shared with the game's own field
+            if ((bool)applySortingField.GetValue(__instance))
+                return false;
+            applySortingField.SetValue(__instance, true);
+
             bool showMod = ((IViewModel)__instance).Get<bool>("FilterMod");
-            ScoreSortMode sortMode = GameConfig.I.SystemConfig.ScoreSortMode;
+            ScoreSortMode sortMode = App.GameConfig.I.SystemConfig.ScoreSortMode;
 
             List<UIScoreItem> list = new List<UIScoreItem>();
             foreach (UIScoreItem item in __instance.OriginalItems)
@@ -32,7 +40,7 @@ namespace YunYunLoader.Patches
                     continue;
                 }
 
-                bool isMod = Plugin.ModdedSongs.ContainsKey(item.MusicId);
+                bool isMod = Plugin.IsModdedSong(item.MusicId);
                 bool isDlc = item.IsDLC;
                 bool isNormal = !isDlc && !isMod;
 
@@ -42,36 +50,102 @@ namespace YunYunLoader.Patches
                     (isMod && showMod);
 
                 bool searchVisible = string.IsNullOrEmpty(__instance.SearchText.Value)
-                    || item.Title.ToString().Contains(__instance.SearchText.Value, System.StringComparison.OrdinalIgnoreCase);
+                    || item.SearchableCredits.Contains(__instance.SearchText.Value, System.StringComparison.OrdinalIgnoreCase);
 
                 if (categoryVisible && searchVisible)
                     list.Add(item);
             }
 
-            if (sortMode == ScoreSortMode.NumberSort)
+            switch (sortMode)
             {
-                __instance.SortMode = LKey.Text.UIScoreList_NumberSort;
-                list = list.OrderBy(x => x, Comparer<UIScoreItem>.Create((a, b) =>
-                {
-                    bool aLocked = a.IsLock || a.Notpurchased;
-                    bool bLocked = b.IsLock || b.Notpurchased;
-                    if (aLocked && !bLocked) return 1;
-                    if (!aLocked && bLocked) return -1;
-                    return a.Order.CompareTo(b.Order);
-                })).ToList();
-            }
-            else if (sortMode == ScoreSortMode.AlphabetSort)
-            {
-                __instance.SortMode = LKey.Text.UIScoreList_SongSort;
-                list = list.OrderBy(x => x.Title.ToString()).ToList();
+                default:
+                    __instance.SortMode = LKey.Text.UIScoreList_NumberSort;
+                    list = list.OrderBy(GetLockGroup).ThenBy(x => x.Order).ToList();
+                    break;
+                case ScoreSortMode.AlphabetSort:
+                    __instance.SortMode = LKey.Text.UIScoreList_SongSort;
+                    list = list.OrderBy(GetLockGroup).ThenBy(x => x.Title.ToString()).ToList();
+                    break;
+                case ScoreSortMode.LevelSort_LV1:
+                    __instance.SortMode = LKey.Text.UIScoreList_LevelSort1;
+                    list = SortByLevel(list, ScoreLevel.LV1);
+                    break;
+                case ScoreSortMode.LevelSort_LV3:
+                    __instance.SortMode = LKey.Text.UIScoreList_LevelSort3;
+                    list = SortByLevel(list, ScoreLevel.LV3);
+                    break;
+                case ScoreSortMode.LevelSort_LV4:
+                    __instance.SortMode = LKey.Text.UIScoreList_LevelSort4;
+                    list = SortByLevel(list, ScoreLevel.LV4);
+                    break;
+                case ScoreSortMode.LevelSort_LV5:
+                    __instance.SortMode = LKey.Text.UIScoreList_LevelSort5;
+                    list = SortByLevel(list, ScoreLevel.LV5);
+                    break;
+                case ScoreSortMode.ScoreSort_LV1:
+                    __instance.SortMode = LKey.Text.UIScoreList_ScoreSort1;
+                    list = SortByScore(list, ScoreLevel.LV1);
+                    break;
+                case ScoreSortMode.ScoreSort_LV3:
+                    __instance.SortMode = LKey.Text.UIScoreList_ScoreSort3;
+                    list = SortByScore(list, ScoreLevel.LV3);
+                    break;
+                case ScoreSortMode.ScoreSort_LV4:
+                    __instance.SortMode = LKey.Text.UIScoreList_ScoreSort4;
+                    list = SortByScore(list, ScoreLevel.LV4);
+                    break;
+                case ScoreSortMode.ScoreSort_LV5:
+                    __instance.SortMode = LKey.Text.UIScoreList_ScoreSort5;
+                    list = SortByScore(list, ScoreLevel.LV5);
+                    break;
             }
 
             if (__instance.SortAscending)
-                list.Reverse();
+            {
+                // the game reverses each lock group independently, then concatenates them back
+                List<UIScoreItem> unlocked = list.Where(x => GetLockGroup(x) == 0).Reverse().ToList();
+                List<UIScoreItem> notPurchased = list.Where(x => GetLockGroup(x) == 1).Reverse().ToList();
+                List<UIScoreItem> locked = list.Where(x => GetLockGroup(x) == 2).Reverse().ToList();
+                list = unlocked.Concat(notPurchased).Concat(locked).ToList();
+            }
 
+            float scrollbar = __instance.Scrollbar;
+            ScoreLevel levelBeforeRebuild = __instance.Detail.Level;
             __instance.Items.Clear();
             __instance.Items.AddRange(list);
+            __instance.Scrollbar = scrollbar;
+            applySortingField.SetValue(__instance, false);
+            if (__instance.Detail.IsVisible && __instance.Detail.LevelDatas != null
+                && __instance.Detail.Level != levelBeforeRebuild
+                && __instance.Detail.LevelDatas.Any(x => x.Level == levelBeforeRebuild))
+            {
+                __instance.Detail.SetScoreLevel(levelBeforeRebuild);
+            }
+
+            (onSortAppliedField.GetValue(__instance) as System.Action)?.Invoke();
             return false;
+        }
+
+        // mirrors of UIScoreList's private GetLockGroup / SortByLevel / SortByScore helpers
+        private static int GetLockGroup(UIScoreItem x)
+        {
+            if (x.Notpurchased) return 1;
+            if (x.IsLock) return 2;
+            return 0;
+        }
+
+        private static List<UIScoreItem> SortByLevel(List<UIScoreItem> items, ScoreLevel level)
+        {
+            return items.OrderBy(GetLockGroup)
+                .ThenByDescending(x => x.LevelDifficulties.GetValueOrDefault(level, int.MinValue))
+                .ToList();
+        }
+
+        private static List<UIScoreItem> SortByScore(List<UIScoreItem> items, ScoreLevel level)
+        {
+            return items.OrderBy(GetLockGroup)
+                .ThenByDescending(x => x.LevelScores.GetValueOrDefault(level, -1))
+                .ToList();
         }
     }
 
@@ -105,16 +179,9 @@ namespace YunYunLoader.Patches
                 Plugin.Log.LogError("Failed to find the UVMBinding View, cannot register the Mod checkbox.");
                 return;
             }
-
-            // shift the existing check boxes over to make room for ours
-            checkNormal.transform.GetChild(1).localPosition = new Vector3(-3f, 1f, 0f);
-            checkDlc.transform.localPosition = new Vector3(-48f, 0f, 0f);
-            checkDlc.transform.GetChild(1).localPosition = new Vector3(-8f, 1f, 0f);
-
+            
             // clone the DLC checkbox (with the edits above already applied) for ours
             GameObject checkMod = UnityEngine.Object.Instantiate(checkDlc, checkDlc.transform.parent);
-            checkMod.transform.localPosition = new Vector3(25f, 0f, 0f);
-            checkMod.transform.GetChild(1).localPosition = new Vector3(-3f, 1f, 0f);
 
             // we don't need localization for the checkbox, so gut it out
             // without this it reverts to "DLC" on locale changes
@@ -161,6 +228,10 @@ namespace YunYunLoader.Patches
             vm.Set("FilterMod", true);
             view.Add(checkmark);
             view.Add(click);
+            
+            // parent auto-positions checkboxes vertically, so just shift it up and squish it so it fits in the UI
+            checkDlc.transform.parent.localPosition = new Vector3(1, 16, 0);
+            checkDlc.transform.parent.GetComponent<VerticalLayoutGroup>().spacing = -7;
         }
 
         private static GameObject? FindDeep(Transform root, string name)
